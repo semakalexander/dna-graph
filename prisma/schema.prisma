@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")
+}
+
+model DnaMatch {
+    id                      Int      @id @default(autoincrement())
+    matchID                 String
+    name                    String
+    age                     String
+    country                 String
+    contactUrl              String
+    managedByName           String
+    status                  String
+    possibleRelationships   String
+    totalCmShared           Int
+    percentDnaShared        Float
+    sharedSegments          Int
+    largestSegmentCm        Int
+    hasFamilyTree           Boolean
+    individualsInTree       Int
+    treeManagedBy           String
+    treeUrl                 String
+    sharedAncestralSurnames String
+    allAncestralSurnames    String
+    createdAt               DateTime @default(now())
+    updatedAt               DateTime @updatedAt
+
+    @@index([matchID])
+}
+
+model Node {
+    id      String  @unique
+    type    Int
+    length  Int?
+    color   String?
+    sources Link[]  @relation("Source")
+    targets Link[]  @relation("Target")
+}
+
+model Link {
+    id       Int    @id @default(autoincrement())
+    source   Node   @relation(fields: [sourceId], references: [id], name: "Source")
+    sourceId String
+    target   Node   @relation(fields: [targetId], references: [id], name: "Target")
+    targetId String
+}
