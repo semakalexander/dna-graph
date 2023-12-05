@@ -69,9 +69,10 @@ const NodeInfo: FC<{
   return (
     <div
       className={classNames(
-        "fixed bottom-0 left-leftSidebarWidth right-rightSidebarWidth max-h-bottomPanelHeight overflow-y-auto bg-gray-50 pt-6 transition-all duration-300 ease-in-out  dark:bg-gray-800",
+        "fixed bottom-0 left-leftSidebarWidth right-rightSidebarWidth overflow-y-auto bg-gray-50 pt-6 transition-all duration-300 ease-in-out  dark:bg-gray-800",
         {
           "max-h-9": isClosed,
+          "max-h-bottomPanelHeight": !isClosed,
         },
       )}
     >

@@ -1,8 +1,8 @@
 import Graph from "graphology";
 import louvain from "graphology-communities-louvain";
+import { type Cluster } from "~/types";
 import {
   NodeType,
-  type Cluster,
   type Data,
   type GroupDna,
   type Link,
@@ -10,47 +10,8 @@ import {
   type ShortDnaMatch,
 } from "./types";
 
-export const groupBySurname = (matches: Omit<ShortDnaMatch, "id">[]) => {
-  const surnames = [
-    ...new Set(
-      matches.reduce(
-        (acc, match) => [...acc, ...match.surnames],
-        [] as string[],
-      ),
-    ),
-  ];
-
-  const groups: GroupDna[] = surnames
-    .map((surname) => {
-      return {
-        surname,
-        matches: matches.filter((match) => match.surnames.includes(surname)),
-      };
-    })
-    .sort((m1, m2) => m2.matches.length - m1.matches.length);
-
-  return groups;
-};
-
-export const removeDuplicates = <T>(data: T[], keys: (keyof T)[]) => {
-  return data.reduce((acc, el) => {
-    if (acc.find((item) => keys.every((key) => item[key] === el[key])))
-      return acc;
-    return [...acc, el];
-  }, [] as T[]);
-};
-
-export const fetcher = (url: string) =>
-  fetch(url, { next: { revalidate: 3600 } }).then((res) => res.json());
-
-export const toId = (surname: Node["id"]) =>
-  surname
-    .replaceAll(" ", "-")
-    .replaceAll("(", "lBracket")
-    .replaceAll(")", "rBracket")
-    .replaceAll("<", "lArrow")
-    .replaceAll(">", "rArrow")
-    .replaceAll(".", "dot");
+export const validSurname = (surname: string) =>
+  surname.length > 3 && surname.toLowerCase() !== "unknown";
 
 export const extended_palette = [
   "#408080",
@@ -122,86 +83,39 @@ export const extended_palette = [
   "#404080",
 ];
 
-export const keys = <T extends object>(data: T) =>
-  Object.keys(data) as Array<keyof T>;
+export const groupBySurname = (matches: Omit<ShortDnaMatch, "id">[]) => {
+  const surnames = [
+    ...new Set(
+      matches.reduce(
+        (acc, match) => [...acc, ...match.surnames],
+        [] as string[],
+      ),
+    ),
+  ];
 
-export const toTuples = <T extends object>(data: T): [keyof T, T[keyof T]][] =>
-  keys(data).map((key) => [key, data[key]]);
-
-export const isSharedNode = (node: Node) => node.type === NodeType.surname;
-
-export const getTargetsRelatedToNodes = ({
-  links,
-  nodeIds,
-}: {
-  links: Link[];
-  nodeIds: Node["id"][];
-}) => {
-  const relatedLinks = links.filter((link) => nodeIds.includes(link.source));
-  const relatedTargets = relatedLinks.map((l) => l.target);
-  const groupedTargets = relatedTargets.reduce(
-    (acc, target) => ({
-      ...acc,
-      [target]: links.filter((l) => l.target === target),
-    }),
-    {} as Record<Link["target"], Link[]>,
-  );
-  const relatedOnlyToNodes = toTuples(groupedTargets)
-    .filter(([, links]) => links.every((l) => nodeIds.includes(l.source)))
-    .map(([target]) => target);
-
-  return relatedOnlyToNodes;
-};
-
-export const clusterize = (data: Data): Cluster[] => {
-  if (!data) return [];
-  const { nodes, links } = data;
-
-  const graph = new Graph();
-  nodes.forEach((node) => graph.addNode(node.id, { type: node.type }));
-  links
-    .filter(
-      (link) =>
-        nodes.some((n) => n.id === link.target) ||
-        nodes.some((n) => n.id === link.source),
-    )
-    .forEach((link) => graph.addEdge(link.source, link.target));
-
-  const communities = louvain(graph);
-
-  const clusters: Record<string, { surnames: Node[]; persons: Node[] }> = {};
-
-  graph.forEachNode((node) => {
-    const communityId = communities[node]!;
-
-    if (!clusters[communityId]) {
-      clusters[communityId] = {
-        surnames: [],
-        persons: [],
+  const groups: GroupDna[] = surnames
+    .map((surname) => {
+      return {
+        surname,
+        matches: matches.filter((match) => match.surnames.includes(surname)),
       };
-    }
+    })
+    .sort((m1, m2) => m2.matches.length - m1.matches.length);
 
-    const type = graph.getNodeAttribute(node, "type") as NodeType;
-
-    if (type === NodeType.person)
-      clusters[communityId]?.persons.push({ id: node, type });
-    else clusters[communityId]?.surnames.push({ id: node, type });
-  });
-
-  return Object.entries(clusters).map(([id, { surnames, persons }], index) => ({
-    id,
-    surnames,
-    persons,
-    color: extended_palette[index] ?? "#fff",
-  }));
+  return groups;
 };
 
-export const validSurname = (surname: string) =>
-  surname.length > 3 && surname.toLowerCase() !== "unknown";
+const removeDuplicates = <T>(data: T[], keys: (keyof T)[]) => {
+  return data.reduce((acc, el) => {
+    if (acc.find((item) => keys.every((key) => item[key] === el[key])))
+      return acc;
+    return [...acc, el];
+  }, [] as T[]);
+};
 
 export const dataToNodesAndLinks = (data: ShortDnaMatch[]): Data => {
   const grouped = groupBySurname(data)
-    .filter((item) => item.matches.length > 20 && validSurname(item.surname))
+    .filter((item) => item.matches.length > 40 && validSurname(item.surname))
     .map((g) => ({
       ...g,
       matches: g.matches
@@ -264,6 +178,25 @@ export const dataToNodesAndLinks = (data: ShortDnaMatch[]): Data => {
     })),
   };
 };
+export const fetcher = (url: string) =>
+  fetch(url, { next: { revalidate: 3600 } }).then((res) => res.json());
+
+export const toId = (surname: Node["id"]) =>
+  surname
+    .replaceAll(" ", "-")
+    .replaceAll("(", "lBracket")
+    .replaceAll(")", "rBracket")
+    .replaceAll("<", "lArrow")
+    .replaceAll(">", "rArrow")
+    .replaceAll(".", "dot");
+
+export const keys = <T extends object>(data: T) =>
+  Object.keys(data) as Array<keyof T>;
+
+export const toTuples = <T extends object>(data: T): [keyof T, T[keyof T]][] =>
+  keys(data).map((key) => [key, data[key]]);
+
+export const isSharedNode = (node: Node) => node.type === NodeType.surname;
 
 export const splitByPredicate = (
   input: string,
@@ -289,4 +222,77 @@ export const splitByPredicate = (
   }
 
   return result;
+};
+
+export const msToS = (ms: number) => ms / 1000;
+
+export const clusterize = (data: Data): Cluster[] => {
+  if (!data) return [];
+
+  const { nodes, links } = data;
+
+  const graph = new Graph();
+  nodes.forEach((node) => graph.addNode(node.id, { type: node.type }));
+  links
+    .filter(
+      (link) =>
+        nodes.some((n) => n.id === link.target) ||
+        nodes.some((n) => n.id === link.source),
+    )
+    .forEach((link) => graph.addEdge(link.source, link.target));
+
+  const communities = louvain(graph);
+
+  const clusters: Record<string, { surnames: Node[]; persons: Node[] }> = {};
+
+  graph.forEachNode((node) => {
+    const communityId = communities[node]!;
+
+    if (!clusters[communityId]) {
+      clusters[communityId] = {
+        surnames: [],
+        persons: [],
+      };
+    }
+
+    const type = graph.getNodeAttribute(node, "type") as NodeType;
+
+    if (type === NodeType.person)
+      clusters[communityId]?.persons.push({ id: node, type });
+    else clusters[communityId]?.surnames.push({ id: node, type });
+  });
+
+  const result = Object.entries(clusters).map(
+    ([id, { surnames, persons }], index) => ({
+      id,
+      surnames,
+      persons,
+      color: extended_palette[index] ?? "#fff",
+    }),
+  );
+
+  return result;
+};
+
+export const getTargetsRelatedToNodes = ({
+  links,
+  nodeIds,
+}: {
+  links: Link[];
+  nodeIds: Node["id"][];
+}) => {
+  const relatedLinks = links.filter((link) => nodeIds.includes(link.source));
+  const relatedTargets = relatedLinks.map((l) => l.target);
+  const groupedTargets = relatedTargets.reduce(
+    (acc, target) => ({
+      ...acc,
+      [target]: links.filter((l) => l.target === target),
+    }),
+    {} as Record<Link["target"], Link[]>,
+  );
+  const relatedOnlyToNodes = toTuples(groupedTargets)
+    .filter(([, links]) => links.every((l) => nodeIds.includes(l.source)))
+    .map(([target]) => target);
+
+  return relatedOnlyToNodes;
 };

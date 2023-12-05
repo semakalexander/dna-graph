@@ -63,3 +63,12 @@ export type Cluster = {
   surnames: Node[];
   persons: Node[];
 };
+
+export enum P_MARK {
+  P_SIMULATION = "P_SIMULATION",
+  P_TOGGLE_SURNAMES = "P_TOGGLE_SURNAMES",
+  P_DRAW_CHART = "P_DRAW_CHART",
+  P_UPDATE_LINKS = "P_UPDATE_LINKS",
+  P_UPDATE_NODES = "P_UPDATE_NODES",
+  P_UPDATE_LABELS = "P_UPDATE_LABELS",
+}

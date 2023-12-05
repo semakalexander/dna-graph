@@ -1,12 +1,14 @@
 import React from "react";
 import { api } from "~/trpc/server";
 import Chart from "~/app/_components/Chart";
-import { clusterize } from "~/utils";
 import { NodeType } from "~/types";
+import PerformanceObserverContainer from "../_components/PerformanceObserverContainer/index";
+import { clusterize } from "~/utils";
 
 const Graph = async () => {
   const data = await api.dna.shortData.query();
   const clusters = clusterize(data);
+
   const dataWithColors = {
     links: data.links,
     nodes: data.nodes.map((node) => {
@@ -20,7 +22,12 @@ const Graph = async () => {
   };
 
   return (
-    <div>{data && <Chart data={dataWithColors} clusters={clusters} />}</div>
+    <div>
+      {process.env.NODE_ENV === "development" && (
+        <PerformanceObserverContainer />
+      )}
+      {data && <Chart data={dataWithColors} clusters={clusters} />}
+    </div>
   );
 };
 
